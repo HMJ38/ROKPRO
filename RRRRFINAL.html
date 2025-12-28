@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제54비행단 국방인사정보시스템</title>
+    <style>
+        :root {
+            --rok-blue: #004c97;
+            --rok-dark: #002d5a;
+            --rok-gold: #f9ba00;
+            --bg-gray: #f2f4f7;
+            --border-color: #c8d1d9;
+            --white: #ffffff;
+            --danger: #d9534f;
+        }
+
+        /* 전체 박스 모델 초기화 및 가로 넘침 방지 */
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background-color: var(--bg-gray);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 헤더 디자인 */
+        header {
+            background: linear-gradient(90deg, var(--rok-dark) 0%, var(--rok-blue) 100%);
+            color: white;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--rok-gold);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header-title h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+        .header-title p { margin: 0; font-size: 0.85rem; opacity: 0.8; }
+
+        /* 네비게이션 탭 */
+        nav {
+            background: var(--white);
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .nav-item {
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .nav-item:hover { color: var(--rok-blue); }
+        .nav-item.active {
+            color: var(--rok-blue);
+            border-bottom: 3px solid var(--rok-blue);
+            background-color: #f8f9fa;
+        }
+
+        /* 메인 컨테이너 */
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 0 10px 100px;
+        }
+
+        /* [핵심] 모바일 잘림 해결을 위한 내부 컨테이너 */
+        .section-container {
+            width: 100%;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- 공통 박스 스타일 --- */
+        .info-box { width: 100%; background: white; padding: 40px; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 30px; overflow-x: auto; }
+        .box-header { border-left: 5px solid var(--rok-blue); padding-left: 15px; margin-bottom: 30px; }
+        .box-header h2 { margin: 0; color: var(--rok-dark); }
+
+        /* --- 예약 대기 현황 스타일 --- */
+        .res-summary { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; }
+        .res-stat { flex: 1; min-width: 120px; background: var(--rok-dark); color: white; padding: 20px; border-radius: 4px; text-align: center; }
+        .res-stat span { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px; }
+        .res-stat b { font-size: 1.8rem; color: var(--rok-gold); }
+
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .res-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 700px; }
+        .res-table th { background: #f8f9fa; padding: 12px; border-bottom: 2px solid var(--rok-blue); color: var(--rok-dark); }
+        .res-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        .res-table tr:hover { background: #f9f9f9; }
+        
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .bg-wait { background: #eee; color: #666; }
+        .bg-ing { background: #e7f3ff; color: #004c97; }
+        .bg-vip { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+        .bg-allied { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+
+        /* --- 소리함 게시판 스타일 --- */
+        .board-table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--border-color); font-size: 0.9rem; min-width: 700px; }
+        .board-table th { background: #f8f9fa; padding: 12px; border-bottom: 2px solid var(--rok-blue); color: var(--rok-dark); }
+        .board-table td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .post-title { font-weight: bold; color: #333; display: block; margin-bottom: 8px; font-size: 1rem; }
+        .post-desc { color: #555; font-size: 0.9rem; padding-left: 15px; border-left: 3px solid #eee; line-height: 1.5; }
+        
+        .status-badge { 
+            padding: 2px 8px; 
+            border-radius: 3px; 
+            font-size: 0.75rem; 
+            font-weight: bold; 
+            background: #e7f3ff; 
+            color: #004c97; 
+            white-space: nowrap; 
+            display: inline-block;
+        }
+        .status-pending { background: #fff2e8; color: #fa8c16; }
+
+        /* --- 복지대대 소개 스타일 (PC 2x2 사각형 배치 고정) --- */
+        .promo-box { width: 100%; background: white; padding: 50px; border: 1px solid var(--border-color); border-radius: 4px; }
+        .promo-header { text-align: center; margin-bottom: 50px; }
+        .promo-header h2 { color: var(--rok-blue); font-size: 2.2rem; margin-bottom: 10px; }
+        .promo-header .subtitle { color: #d9534f; font-size: 1.2rem; font-weight: bold; }
+        
+        .duty-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); /* PC에서 정확히 2열(사각형) 유지 */
+            gap: 25px; 
+            margin-top: 40px; 
+            width: 100%;
+        }
+        
+        .duty-card { background: #fff; padding: 30px; border: 1px solid #eee; border-left: 6px solid var(--rok-blue); box-shadow: 5px 5px 15px rgba(0,0,0,0.03); }
+        .duty-card h3 { margin-top: 0; color: var(--rok-dark); display: flex; align-items: center; font-size: 1.3rem; }
+        .duty-card h3::before { content: "◈"; margin-right: 10px; color: var(--rok-gold); }
+        .efficiency-result { margin-top: 50px; background: var(--rok-dark); color: white; padding: 40px; border-radius: 10px; text-align: center; width: 100%; }
+        .stats-container { display: flex; justify-content: space-around; margin-top: 30px; flex-wrap: wrap; gap: 20px; }
+        .stat-circle .num { font-size: 2.5rem; font-weight: bold; display: block; color: var(--rok-gold); }
+
+        /* --- 상세 연혁 스타일 --- */
+        .history-box { width: 100%; background: white; padding: 50px; border: 1px solid var(--border-color); border-radius: 4px; }
+        .history-header { border-left: 5px solid var(--rok-blue); padding-left: 15px; margin-bottom: 40px; }
+        .history-header h2 { margin: 0; color: var(--rok-dark); font-size: 1.8rem; }
+        .timeline { position: relative; padding-left: 40px; border-left: 2px solid #dee2e6; margin-left: 20px; }
+        .timeline-item { position: relative; margin-bottom: 40px; }
+        .timeline-item::before { content: ""; position: absolute; left: -49px; top: 5px; width: 16px; height: 16px; border-radius: 50%; background: var(--rok-blue); border: 4px solid white; box-shadow: 0 0 0 2px var(--rok-blue); }
+        .timeline-item.important::before { background: var(--rok-gold); box-shadow: 0 0 0 2px var(--rok-gold); }
+        .timeline-date { font-weight: bold; color: var(--rok-blue); font-size: 1.2rem; margin-bottom: 8px; display: block; }
+        .timeline-title { font-weight: bold; font-size: 1.1rem; color: #333; margin-bottom: 5px; }
+        .timeline-content { font-size: 0.95rem; color: #666; background: #f9f9f9; padding: 15px; border-radius: 4px; }
+
+        /* --- 인물 프로필 스타일 (모바일 줄바꿈 및 스크롤 해결) --- */
+        .org-row { 
+            display: flex; 
+            justify-content: center; 
+            gap: 40px; 
+            margin-bottom: 60px; 
+            flex-wrap: wrap; /* 모바일에서 카드가 넘치지 않고 아래로 내려오게 함 */
+            width: 100%;
+        }
+        .char-card { background: var(--white); border: 1px solid var(--border-color); border-top: 4px solid var(--rok-blue); border-radius: 4px; width: 220px; cursor: pointer; text-align: center; box-shadow: 0 6px 12px rgba(0,0,0,0.08); transition: transform 0.2s; }
+        .char-card:hover { transform: translateY(-10px); }
+        .char-img { width: 100%; height: 280px; object-fit: cover; }
+        .char-info { padding: 18px 10px; }
+        .char-name { font-size: 1.15rem; font-weight: bold; color: var(--rok-dark); }
+        
+        /* 모달 스타일 */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 15, 30, 0.8); backdrop-filter: blur(8px); overflow-y: auto; }
+        .modal-content { background-color: white; margin: 5% auto; width: 90%; max-width: 750px; border: 1px solid var(--rok-blue); display: flex; flex-direction: row; position: relative; flex-wrap: wrap; }
+        .modal-body { display: flex; width: 100%; flex-wrap: wrap; }
+        .modal-img { width: 40%; min-width: 250px; object-fit: cover; border-right: 1px solid #eee; }
+        .modal-desc { width: 60%; min-width: 250px; padding: 40px; flex-grow: 1; }
+        .profile-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .profile-table th, .profile-table td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        .profile-table th { width: 30%; background-color: #f9f9f9; color: #555; }
+        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 30px; cursor: pointer; color: #aaa; z-index: 2001; }
+
+        /* --- 모바일 미디어 쿼리 --- */
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; flex-direction: column; text-align: center; }
+            .header-title h1 { font-size: 1.2rem; }
+            
+            /* [해결] 모바일에서 왼쪽 잘림 현상 방지를 위해 padding-left 추가 및 컨테이너 조정 */
+            .section-container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+
+            .duty-grid { grid-template-columns: 1fr; } /* 모바일에서는 가독성을 위해 1열 */
+            .modal-content, .modal-body { flex-direction: column; }
+            .modal-img { width: 100%; height: 300px; border-right: none; border-bottom: 1px solid #eee; }
+            .modal-desc { width: 100%; padding: 20px; }
+            .org-row { gap: 20px; }
+            .info-box, .promo-box, .history-box { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <h1>제54비행단 국방인사정보시스템</h1>
+        <p>54th Fighter Wing Personnel Information System</p>
+    </div>
+    <div class="header-right">
+        <div style="background: #d9534f; padding: 2px 8px; border-radius: 3px; font-weight: bold; font-size: 0.8rem;">비 2급 (Classified)</div>
+        <div style="font-size: 0.8rem; margin-top: 5px;">한미연합작전 통제구역</div>
+    </div>
+</header>
+
+<nav>
+    <div class="nav-item active" onclick="showSection('personnel')">부대원 현황</div>
+    <div class="nav-item" onclick="showSection('welfare-intro')">복지대대 소개</div>
+    <div class="nav-item" onclick="showSection('reservation')">예약 대기 현황</div>
+    <div class="nav-item" onclick="showSection('suggestion')">마음의 소리함</div>
+    <div class="nav-item" onclick="showSection('history')">부대 연혁</div>
+</nav>
+
+<div class="container">
+    
+    <div id="personnel" class="content-section active">
+        <div class="section-container">
+            <div class="org-row"><div id="char-0"></div></div>
+            <div class="org-row">
+                <div id="char-1"></div>
+                <div id="char-3"></div>
+                <div id="char-2"></div>
+            </div>
+            <div class="org-row">
+                <div id="char-5"></div>
+                <div id="char-4"></div>
+                <div style="width: 220px;" class="empty-spacer"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="welfare-intro" class="content-section">
+        <div class="section-container">
+            <div class="promo-box">
+                <div class="promo-header">
+                    <h2>복지대대 임무 (Our Mission)</h2>
+                    <p class="subtitle">"전투력의 근간은 장병의 안녕(Well-being)에서 시작됩니다"</p>
+                </div>
+                <div class="duty-grid">
+                    <div class="duty-card">
+                        <h3>전문 심리상담 및 멘탈케어</h3>
+                        <p>한미 연합 작전의 긴장감 속에서 장병들의 심리적 안정을 위해 24시간 상담 시스템을 운영합니다.</p>
+                    </div>
+                    <div class="duty-card">
+                        <h3>장병 욕구 해결 및 고충 처리</h3>
+                        <p>개인별 고충과 건의사항을 수렴하여 즉각적인 환경 개선과 행정 지원을 실시합니다.</p>
+                    </div>
+                    <div class="duty-card">
+                        <h3>최신식 복지 인프라 관리</h3>
+                        <p>연합 복지지원센터, 피트니스 센터 등 한미 장병 공동 이용 시설을 현대적으로 관리합니다.</p>
+                    </div>
+                    <div class="duty-card">
+                        <h3>체계적 휴식 및 재충전 지원</h3>
+                        <p>전투 휴무 및 리프레시 프로그램을 통해 임무 수행을 위한 최적의 에너지를 재충전합니다.</p>
+                    </div>
+                </div>
+                <div class="efficiency-result">
+                    <h4>복지대대 신설 이후 운영 성과</h4>
+                    <div class="stats-container">
+                        <div class="stat-circle"><span class="num">+42%</span><span class="label">작전 준비 효율</span></div>
+                        <div class="stat-circle"><span class="num">98%</span><span class="label">복지 만족도</span></div>
+                        <div class="stat-circle"><span class="num">0건</span><span class="label">주요 사고 발생</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reservation" class="content-section">
+        <div class="section-container">
+            <div class="info-box">
+                <div class="box-header">
+                    <h2>실시간 예약 대기 현황 (Reservation Status)</h2>
+                    <p>보안 등급 비 2급. 세션 이용 대기자 명단입니다.</p>
+                </div>
+                <div class="res-summary">
+                    <div class="res-stat"><span>현재 총 대기 인원</span><b>142명</b></div>
+                    <div class="res-stat"><span>금일 처리 잔여 슬롯</span><b>12개</b></div>
+                    <div class="res-stat"><span>평균 대기 일수</span><b>18일</b></div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="res-table">
+                        <thead>
+                            <tr>
+                                <th width="60">순번</th>
+                                <th>소속 / 계급</th>
+                                <th>성명</th>
+                                <th>희망 담당자</th>
+                                <th>유형</th>
+                                <th>진행 상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>미 8전투비행단 중령</td><td>James M.</td><td>강예희 중령(진)</td><td><span class="badge bg-vip">VVIP</span></td><td><span class="badge bg-ing">세션 진행중</span></td></tr>
+                            <tr><td>2</td><td>제54비행단 대령</td><td>김영훈</td><td>박겨울 대위</td><td><span class="badge bg-vip">VIP</span></td><td><span class="badge bg-ing">준비중</span></td></tr>
+                            <tr><td>3</td><td>미 7공군 상사</td><td>Robert S.</td><td>정채윤 상사</td><td><span class="badge bg-allied">Allied</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>4</td><td>제54비행단 상병</td><td>박진우</td><td>임규민 하사</td><td><span class="badge bg-wait">일반</span></td><td><span class="badge bg-ing">진행중</span></td></tr>
+                            <tr><td>5</td><td>제17비행단 중사</td><td>이동현</td><td>윤청아 중사</td><td><span class="badge bg-wait">일반</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>6</td><td>미 51전투비행단 대위</td><td>Kevin H.</td><td>민하은 중위</td><td><span class="badge bg-allied">Allied</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>7</td><td>공군본부 준장</td><td>최성호</td><td>강예희 중령(진)</td><td><span class="badge bg-vip">VVIP</span></td><td><span class="badge bg-wait">승인 대기</span></td></tr>
+                            <tr><td>8</td><td>제54비행단 일병</td><td>정태양</td><td>임규민 하사</td><td><span class="badge bg-wait">일반</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>9</td><td>미 8전투비행단 병장</td><td>Chris W.</td><td>박겨울 대위</td><td><span class="badge bg-allied">Allied</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>10</td><td>제54비행단 소령</td><td>한승우</td><td>민하은 중위</td><td><span class="badge bg-wait">간부</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td>11</td><td>제20비행단 상사</td><td>고준식</td><td>정채윤 상사</td><td><span class="badge bg-wait">일반</span></td><td><span class="badge bg-wait">대기</span></td></tr>
+                            <tr><td colspan="6" style="background:#f9f9f9; font-size:0.8rem; color:#999; padding: 10px;">... 외 131명의 연합군 및 국군 장병 대기 중 ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="suggestion" class="content-section">
+        <div class="section-container">
+            <div class="history-box">
+                <div class="history-header">
+                    <h2>마음의 소리함 (Soldier's Voice)</h2>
+                    <p>보안 등급 비 2급. 장병 및 연합군의 고충과 이용 후기를 수렴합니다.</p>
+                </div>
+                <div class="table-wrapper">
+                    <table class="board-table">
+                        <thead>
+                            <tr>
+                                <th width="80">상태</th>
+                                <th>건의 및 후기 내용</th>
+                                <th width="140">작성자</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="status-badge">완료</span></td>
+                                <td>
+                                    <span class="post-title">God bless the 54th Welfare Battalion!</span>
+                                    <div class="post-desc">I thought military life in Korea would be boring, but your "Special Counseling" changed my mind. Specialist Lim Gyu-min was so kind and her 'technique' was world-class. Need more weekend slots!</div>
+                                </td>
+                                <td>Sgt. Micheal***</td>
+                            </tr>
+                            <tr>
+                                <td><span class="status-badge status-pending">검토중</span></td>
+                                <td>
+                                    <span class="post-title">영관급 이상 간부 전용 세션 확대 건의</span>
+                                    <div class="post-desc">요즘 젊은 장병들이 너무 많아 대기 시간이 깁니다. 노련한 간부들이 조용하고 품격 있게 성적 욕구를 해소할 수 있도록 VIP 전용 공간의 방음시설 보강과 간부 전용 예약제를 강력히 건의합니다.</div>
+                                </td>
+                                <td>대령 김**</td>
+                            </tr>
+                            <tr>
+                                <td><span class="status-badge">완료</span></td>
+                                <td>
+                                    <span class="post-title">정채윤 상사님... 저 진짜 한 번만 더 살려주십시오.</span>
+                                    <div class="post-desc">저번 야간 보급품 정리 때 행보관님이 직접 해주신 복지 교육 잊지 못합니다. 저 이번에 제초 작업 자원할 테니 제발 저번처럼 창고 뒤에서 한 번만 더 교육해주시면 안 됩니까? 진짜 미치겠습니다.</div>
+                                </td>
+                                <td>상병 이**</td>
+                            </tr>
+                            <tr>
+                                <td><span class="status-badge status-pending">검토중</span></td>
+                                <td>
+                                    <span class="post-title">Capt. Park Winter is truly a "Cold Beauty"</span>
+                                    <div class="post-desc">The way she looked down at me during the session was amazing. It made my pilot heart race more than a dogfight. Please allow longer counseling sessions for US Air Force officers.</div>
+                                </td>
+                                <td>Maj. Steve***</td>
+                            </tr>
+                            <tr>
+                                <td><span class="status-badge">완료</span></td>
+                                <td>
+                                    <span class="post-title">민 중위님 그 차가운 청진기 촉감...</span>
+                                    <div class="post-desc">의무실 갈 때마다 민하은 중위님의 무심한 듯 정열적인 진료 덕분에 군생활 버팁니다. 다음 주 신체검사 때 저 꼭 민 중위님 라인으로 배정 부탁드립니다. 제발요.</div>
+                                </td>
+                                <td>일병 최**</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="history" class="content-section">
+        <div class="section-container">
+            <div class="history-box">
+                <div class="history-header">
+                    <h2>제54비행단 상세 연혁 (Unit Chronology)</h2>
+                    <p>대한민국 영공 수호와 한미 동맹의 역사입니다.</p>
+                </div>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-date">1978. 11. 01.</span>
+                        <div class="timeline-title">제54비행단 창설</div>
+                        <div class="timeline-content">국가 영공 방위의 전략적 요충지로서 창설. 초대 단장 취임 및 부대 깃발 수여식 거행.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-date">1985. 06. 15.</span>
+                        <div class="timeline-title">한미연합기지(Combined Base) 공식 지정</div>
+                        <div class="timeline-content">미 7공군 예하 전투부대 주둔 시작. 한미 연합 방위 태세의 중추적 역할 수행 시작.</div>
+                    </div>
+                    <div class="timeline-item important">
+                        <span class="timeline-date">2022. 02. 01.</span>
+                        <div class="timeline-title">제54비행단 복지대대 창설</div>
+                        <div class="timeline-content">초대 복지대대장 강예희 소령(현 중령(진)) 취임. 한미 장병 통합 복지 관리 시스템 가동 시작.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-date">2025. 현재</span>
+                        <div class="timeline-title">세계 최고 수준의 복지 체계 유지</div>
+                        <div class="timeline-content">완벽한 대비태세를 지원하는 '복지의 심장'으로서 임무 수행 중.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    function showSection(sectionId) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    const characters = [
+        { name: "강예희", rank: "중령(진)", position: "대대장", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/A.png", career: "공군사관학교 졸업<br>제17전투비행단 운영과장<br>본부 인사참모부 인력기획담당<br>현) 제54비행단 복지대대장" },
+        { name: "박겨울", rank: "대위", position: "중대장", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/B.png", career: "학군단 임관<br>제1전투비행단 정훈장교<br>현) 제54비행단 복지대대 중대장" },
+        { name: "민하은", rank: "중위", position: "의무장교", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/C.png", career: "의무사관 임관<br>국군대전병원 파견근무<br>현) 제54비행단 복지대대 의무장교" },
+        { name: "정채윤", rank: "상사", position: "행정보급관", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/D.png", career: "부사관후보생 임관<br>제1공수특전여단 위탁교육 수료<br>동명부대 파병<br>현) 제54비행단 복지대대 행정보급관" },
+        { name: "윤청아", rank: "중사", position: "군수부사관", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/E.png", career: "군수사령부 물자관리단<br>현) 제54비행단 복지대대 군수부사관" },
+        { name: "임규민", rank: "하사", position: "복지부사관", img: "https://raw.githubusercontent.com/HMJ38/ROKPRO/refs/heads/main/F.png", career: "공군 부사관 임관<br>현) 제54비행단 복지대대 복지부사관" }
+    ];
+
+    characters.forEach((char, index) => {
+        const targetDiv = document.getElementById(`char-${index}`);
+        if (targetDiv) {
+            targetDiv.innerHTML = `
+                <div class="char-card" onclick="openModal(${index})">
+                    <img src="${char.img}" alt="${char.name}" class="char-img" onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
+                    <div class="char-info">
+                        <div class="char-rank">${char.rank} | ${char.position}</div>
+                        <div class="char-name">${char.name}</div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    function openModal(index) {
+        const char = characters[index];
+        document.getElementById('modalBody').innerHTML = `
+            <img src="${char.img}" alt="${char.name}" class="modal-img" onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
+            <div class="modal-desc">
+                <h2>${char.rank} ${char.name}</h2>
+                <table class="profile-table">
+                    <tr><th>직책</th><td>${char.position}</td></tr>
+                    <tr><th>주요 경력</th><td>${char.career}</td></tr>
+                </table>
+            </div>
+        `;
+        document.getElementById('profileModal').style.display = "block";
+    }
+
+    function closeModal() { document.getElementById('profileModal').style.display = "none"; }
+    window.onclick = function(event) { if (event.target == document.getElementById('profileModal')) closeModal(); }
+</script>
+
+</body>
+</html>
